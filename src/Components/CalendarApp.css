@@ -377,3 +377,8 @@
     aspect-ratio: 3 / 2;
   }
 }
+
+.event-popup-error {
+  color: #ff6b6b;
+  font-size: 1.2rem;
+}

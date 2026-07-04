@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 const CalendarApp = () => {
-  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const monthsOfYear  = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   const currentDate = new Date();
@@ -13,6 +13,8 @@ const CalendarApp = () => {
   const [events, setEvents] = useState([])
   const [eventTime, setEventTime] = useState({ hours: '00', minutes: '00' })
   const [eventText, setEventText] = useState('')
+  const [editingEvent, setEditingEvent] = useState(null)
+  const [eventTextError, setEventTextError] = useState('')
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
@@ -44,20 +46,74 @@ const CalendarApp = () => {
       setShowEventPopup(true)
       setEventTime({ hours: '00', minutes: '00' })
       setEventText('')
+      setEditingEvent(null)
     }
   }
 
   const handleEventSubmit = () => {
+    if (!eventText.trim()) {
+      setEventTextError('Please enter event text.')
+      return
+    }
+
+    setEventTextError('')
+
     const newEvent = {
+      id: editingEvent ? editingEvent.id : Date.now(),
       date: selectedDate,
       time: `${eventTime.hours.padStart(2, '0')}:${eventTime.minutes.padStart(2, '0')}`,
       text: eventText,
     }
 
-    setEvents([...events, newEvent])
+    let updatedEvents = [...events]
+
+    const toTimestamp = (event) => {
+      const [hours, minutes] = event.time.split(':').map(Number)
+      const dateTime = new Date(event.date)
+      dateTime.setHours(hours, minutes, 0, 0)
+      return dateTime.getTime()
+    }
+
+    if (editingEvent) {
+      updatedEvents = updatedEvents.map((event) =>
+        event.id === editingEvent.id ? newEvent : event,
+      )
+    } else {
+      updatedEvents.push(newEvent)
+    }
+
+    updatedEvents.sort((a, b) => toTimestamp(a) - toTimestamp(b))
+
+    setEvents(updatedEvents)
     setEventTime({ hours: '00', minutes: '00' })
     setEventText('')
     setShowEventPopup(false)
+    setEditingEvent(null)
+  }
+
+  const handleEditEvent = (event) => {
+    setSelectedDate(new Date(event.date))
+    setEventTime({
+      hours: event.time.split(':')[0],
+      minutes: event.time.split(':')[1],
+    })
+    setEventText(event.text)
+    setEditingEvent(event)
+    setShowEventPopup(true)
+  }
+
+  const handleDeleteEvent = (eventId) => {
+    const updatedEvents = events.filter((event) => event.id !== eventId)
+
+    setEvents(updatedEvents)
+  }
+
+  const handleTimeChange = (e) => {
+    const { name, value, min, max } = e.target
+    const clamped = Math.min(Math.max(parseInt(value || '0', 10), Number(min)), Number(max))
+    const normalized = String(clamped).padStart(2, '0')
+
+    setEventTime((prevTime) => ({ ...prevTime, [name]: normalized }))
   }
   
   return (
@@ -103,33 +159,19 @@ const CalendarApp = () => {
           <div className="event-popup">
             <div className="time-input">
               <div className="event-popup-time">Time</div>
-              <input
-                type="number"
-                name="hours"
-                min="0"
-                max="24"
-                className="hours"
-                value={eventTime.hours}
-                onChange={(e) => setEventTime({ ...eventTime, hours: e.target.value })}
-              />
-              <input
-                type="number"
-                name="minutes"
-                min="0"
-                max="60"
-                className="minutes"
-                value={eventTime.minutes}
-                onChange={(e) => setEventTime({ ...eventTime, minutes: e.target.value })}
-              />
+              <input type="number" name="hours" min={0} max={24} className="hours" value={eventTime.hours} onFocus={(e) => e.target.select()} onChange={handleTimeChange} />
+              <input type="number" name="minutes" min={0} max={59} className="minutes" value={eventTime.minutes} onFocus={(e) => e.target.select()} onChange={handleTimeChange} />
             </div>
             <textarea
               placeholder="Enter Event Text (Maximum 60 Characters)"
               maxLength="60"
               value={eventText}
+              onFocus={(e) => setEventTextError('')}
               onChange={(e) => setEventText(e.target.value)}
             ></textarea>
+            {eventTextError && <div className="event-popup-error">{eventTextError}</div>}
             <button className="event-popup-btn" onClick={handleEventSubmit}>
-              Add Event
+              {editingEvent ? 'Update Event' : 'Add Event'}
             </button>
             <button className="close-event-popup" onClick={() => setShowEventPopup(false)}>
               <i className="bx bx-x"></i>
@@ -146,8 +188,8 @@ const CalendarApp = () => {
             </div>
             <div className="event-text">{event.text}</div>
             <div className="event-buttons">
-              <i className="bx bxs-edit-alt"></i>
-              <i className="bx bxs-message-alt-x"></i>
+              <i className="bx bxs-edit-alt" onClick={() => handleEditEvent(event)}></i>
+              <i className="bx bxs-message-alt-x" onClick={() => handleDeleteEvent(event.id)}></i>
             </div>
           </div>
         ))}

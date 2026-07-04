@@ -27,7 +27,7 @@ Ezt **kézzel írd meg** – ez az első valódi `useState`/hooks gyakorlatod, e
 import { useState } from 'react'
 
 const CalendarApp = () => {
-  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const monthsOfYear = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
